@@ -77,10 +77,8 @@ public class MainActivity extends AppCompatActivity {
 
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        //locationRequest.setInterval(30 * 1000); // in ms
-        //locationRequest.setSmallestDisplacement(500);
-        locationRequest.setInterval(1); // in ms
-        locationRequest.setSmallestDisplacement(0);
+        locationRequest.setInterval(30 * 1000); // in ms
+        locationRequest.setSmallestDisplacement(500);
 
         LocationCallback locationCallback = new LocationCallback() {
             @Override
