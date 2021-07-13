@@ -1,5 +1,6 @@
 package sg.edu.rp.c347.id19007966.gettingmylocation;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -7,17 +8,25 @@ import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.FragmentManager;
 
 import android.Manifest;
+import android.location.Location;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.FileReader;
 
@@ -29,9 +38,14 @@ public class MainActivity extends AppCompatActivity {
 
     // singapore centre's coordinates
     LatLng singaporeCoords = new LatLng(1.3521, 103.8198);
+    Marker currentLocationMarker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // location permission
+        String[] fineLoc = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
+        ActivityCompat.requestPermissions(MainActivity.this, fineLoc, 0);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -42,12 +56,65 @@ public class MainActivity extends AppCompatActivity {
 
         FusedLocationProviderClient client = LocationServices.getFusedLocationProviderClient(this);
 
+        LocationRequest locationRequest = LocationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        //locationRequest.setInterval(30 * 1000); // in ms
+        //locationRequest.setSmallestDisplacement(500);
+        locationRequest.setInterval(1); // in ms
+        locationRequest.setSmallestDisplacement(0);
+
+        LocationCallback locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                Location location = locationResult.getLastLocation();
+                coordinatesTextView.setText(textFrom(location));
+
+                if (currentLocationMarker == null) {
+                    MarkerOptions options = new MarkerOptions()
+                            .position(coordinatesFrom(location))
+                            .icon(BitmapDescriptorFactory
+                                    .defaultMarker(BitmapDescriptorFactory.HUE_AZURE));
+                    currentLocationMarker = map.addMarker(options);
+                    map.moveCamera(CameraUpdateFactory
+                            .newLatLngZoom(coordinatesFrom(location), 16));
+                }
+                else {
+                    currentLocationMarker.setPosition(coordinatesFrom(location));
+                    map.moveCamera(CameraUpdateFactory
+                            .newLatLng(coordinatesFrom(location)));
+                }
+            }
+        };
+
         FragmentManager fragmentManager = getSupportFragmentManager();
         SupportMapFragment mapFragment = (SupportMapFragment) fragmentManager.findFragmentById(R.id.mapView);
 
         mapFragment.getMapAsync(gMap -> {
             map = gMap;
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(singaporeCoords, 10));
+        });
+
+        removeLocationButton.setEnabled(false);
+
+        getLocationButton.setOnClickListener(view -> {
+            if (checkLocationPermission()) {
+                client.requestLocationUpdates(locationRequest, locationCallback, null);
+                getLocationButton.setEnabled(false);
+                removeLocationButton.setEnabled(true);
+            }
+            else {
+                failedPermissionToast();
+            }
+        });
+        removeLocationButton.setOnClickListener(view -> {
+            if (checkLocationPermission()) {
+                client.removeLocationUpdates(locationCallback);
+                getLocationButton.setEnabled(true);
+                removeLocationButton.setEnabled(false);
+            }
+            else {
+                failedPermissionToast();
+            }
         });
     }
 
@@ -62,11 +129,20 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         else {
-            String[] fineLoc = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
-            ActivityCompat.requestPermissions(MainActivity.this, fineLoc, 0);
-            return (permissionCheck_Coarse == PermissionChecker.PERMISSION_GRANTED
-                    || permissionCheck_Fine == PermissionChecker.PERMISSION_GRANTED);
+            return false;
         }
+    }
+
+    private void failedPermissionToast() {
+        Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show();
+    }
+    private String textFrom(Location location) {
+        return "Latitude: " + location.getLatitude()
+                + "\nLongitude: " + location.getLongitude();
+    }
+
+    private LatLng coordinatesFrom(Location location) {
+        return new LatLng(location.getLatitude(), location.getLongitude());
     }
 
 }
