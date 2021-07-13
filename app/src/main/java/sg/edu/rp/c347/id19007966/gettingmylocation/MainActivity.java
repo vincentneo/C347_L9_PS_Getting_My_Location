@@ -8,6 +8,7 @@ import androidx.core.content.PermissionChecker;
 import androidx.fragment.app.FragmentManager;
 
 import android.Manifest;
+import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -51,7 +52,6 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(MainActivity.this, fineLoc, 0);
 
         String folderLocation = getFilesDir().getAbsolutePath() + "/LocationLogs";
-
         File folder = new File(folderLocation);
         if (!folder.exists()) {
             boolean result = folder.mkdir();
@@ -145,6 +145,11 @@ public class MainActivity extends AppCompatActivity {
             else {
                 failedPermissionToast();
             }
+        });
+
+        checkRecordsButton.setOnClickListener(view -> {
+            Intent intent = new Intent(MainActivity.this, RecordsActivity.class);
+            startActivity(intent);
         });
     }
 
