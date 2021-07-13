@@ -10,6 +10,7 @@ import androidx.fragment.app.FragmentManager;
 import android.Manifest;
 import android.location.Location;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,7 +29,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,6 +49,21 @@ public class MainActivity extends AppCompatActivity {
         // location permission
         String[] fineLoc = new String[]{Manifest.permission.ACCESS_FINE_LOCATION};
         ActivityCompat.requestPermissions(MainActivity.this, fineLoc, 0);
+
+        String folderLocation = getFilesDir().getAbsolutePath() + "/LocationLogs";
+
+        File folder = new File(folderLocation);
+        if (!folder.exists()) {
+            boolean result = folder.mkdir();
+            if (result) {
+                Log.d("File read/write", "Folder Created");
+            }
+            else {
+                Toast.makeText(this, "folder creation FAILED!!", Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        File locationLog = new File(folderLocation, "log.txt");
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -82,6 +101,17 @@ public class MainActivity extends AppCompatActivity {
                     currentLocationMarker.setPosition(coordinatesFrom(location));
                     map.moveCamera(CameraUpdateFactory
                             .newLatLng(coordinatesFrom(location)));
+                }
+
+                try {
+                    FileWriter writer = new FileWriter(locationLog, true);
+                    writer.write(coordinatesForRecords(location));
+                    writer.flush();
+                    writer.close();
+                }
+                catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Fail to log location", Toast.LENGTH_SHORT).show();
+                    e.printStackTrace();
                 }
             }
         };
@@ -143,6 +173,10 @@ public class MainActivity extends AppCompatActivity {
 
     private LatLng coordinatesFrom(Location location) {
         return new LatLng(location.getLatitude(), location.getLongitude());
+    }
+
+    private String coordinatesForRecords(Location location) {
+        return location.getLatitude() + ", " + location.getLongitude() + "\n";
     }
 
 }
